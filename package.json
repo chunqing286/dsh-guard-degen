@@ -60,10 +60,6 @@
     "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3",
     "@deepseek-ai/schemastery": "3.18.5"
   },
-  "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.5",
-    "@deepseek-ai/dsh": ">=0.1.6-alpha.2 <0.3.0-0"
-  },
   "devDependencies": {
     "@deepseek-ai/cordis": "~4.0.5",
     "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3",
