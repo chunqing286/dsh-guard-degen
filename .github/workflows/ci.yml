@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Unit tests
+        run: node --test test/*.test.mjs
+      - name: Bundle patch matches the schema defaults
+        run: node verify/check-patch-config.mjs
+      - name: Host half loads on real cordis
+        run: node verify/check-host-load.mjs
+      - name: Package manifest points at files that exist
+        run: node verify/check-package-files.mjs
+
+  mutations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Every fix is pinned by a test
+        run: node verify/check-mutations.mjs
