@@ -49,7 +49,25 @@
 
 ## 安装
 
-插件是一个同时包含宿主半边与浏览器半边的 Cordis 包。最省事的装法是在
+**一条命令**（包已发布到 npm）：
+
+```sh
+dsh plugin --profile <你的 profile> add dsh-guard-degen
+```
+
+`<你的 profile>` 换成宿主实际使用的 profile 名（`dsh web` 通常是 `web`，
+桌面端应用用的是它自己的 profile，名字未必相同）。
+
+也可以在 DSH 界面里点一下：**插件 → 发现**，添加索引源
+`https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`，
+搜「退化守卫 / guard degen」，点**安装**。
+
+装好之后，插件自带的 `cordis.patch.yml` 会作为 bundle 层被应用，宿主半边与浏览器半边一起装上，
+运行时会话和设置页里立刻能看见「退化守卫」分区。
+
+### 手动安装
+
+不想用包管理器的话，在
 `$DSH_HOME/profiles/<你的 profile>/cordis.patch.yml` 里追加一条 insert：
 
 ```yaml
@@ -63,9 +81,7 @@
 
 走相对路径安装时，插件目录要能解析到自己的运行时依赖
 （`@deepseek-ai/dsh-typert-protocol`、`@deepseek-ai/schemastery`，以及它们依赖的
-`@deepseek-ai/cordis`、`@deepseek-ai/cosmokit`）。本仓库的这份插件已经把这四个包
-随附在 `plugin/dsh-guard-degen/node_modules/` 里，复制到别处时一并带上即可；
-走 npm 安装则由 npm 自动装齐。
+`@deepseek-ai/cordis`、`@deepseek-ai/cosmokit`）；走 npm 安装则由 npm 自动装齐。
 
 也可以走 profile 的 bundle 机制：在 profile 的 `package.json` 里写
 `"dsh": { "profile": { "bundles": ["dsh-guard-degen"] } }` 并把包列进 `dependencies`，
@@ -216,12 +232,14 @@ node --test test/*.test.mjs
 
 测试不依赖宿主运行时（除少数需要真实 cordis 的集成检查外）。
 
-独立校验脚本在 `../../verify/`（用同一个 node 跑）：
+独立校验脚本在 `verify/`（用同一个 node 跑）：
 
 | 脚本 | 证明什么 |
 | --- | --- |
 | `check-patch-config.mjs` | 自带的 `cordis.patch.yml` 与 schema 默认值一致 |
-| `check-client-contribution.mjs` | 浏览器半边能装载，远程调用与宿主对得上 |
 | `check-host-load.mjs` | 宿主类在真实 cordis 里能实例化，13 个远程方法都在 |
+| `check-host-entry.mjs` | 宿主半边能在真实 cordis 上装载并起监听 |
+| `check-remote.mjs` | 远程方法标记能被真实协议包识别 |
 | `check-package-files.mjs` | 包清单指向的文件都存在（`npm pack --dry-run` 的等价物） |
 | `check-mutations.mjs` | 每处修复都被用例钉住：改回缺陷状态必有测试变红 |
+| `check-remove-mode.mjs` | 「整段删除」模式下磁盘上不留任何痕迹 |

@@ -61,8 +61,27 @@ more sensitive, without touching the others.
 
 ## Install
 
-The package contains both the host half and the browser half. The simplest install is to
-append one insert to `$DSH_HOME/profiles/<profile>/cordis.patch.yml`:
+**One command** (the package is published on npm):
+
+```sh
+dsh plugin --profile <your profile> add dsh-guard-degen
+```
+
+Replace `<your profile>` with the profile the host actually uses (`web` for `dsh web`;
+the desktop app uses its own profile, whose name is not necessarily the same).
+
+Or do it in the UI: **Plugins → Discover**, add the index source
+`https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`, search for
+"degeneration guard", and press **Install**.
+
+Either way the package's own `cordis.patch.yml` is applied as a bundle layer, so the host
+half and the browser half go in together; the **Degeneration guard** section shows up in
+Settings as soon as the host reloads.
+
+### Manual install
+
+If you would rather not use a package manager, append one insert to
+`$DSH_HOME/profiles/<profile>/cordis.patch.yml`:
 
 ```yaml
 - insert:
@@ -76,9 +95,8 @@ profile's `node_modules` or the installation's own packages.
 
 With a relative-path install the plugin directory must resolve its own runtime
 dependencies (`@deepseek-ai/dsh-typert-protocol`, `@deepseek-ai/schemastery`, plus
-`@deepseek-ai/cordis` and `@deepseek-ai/cosmokit` that they pull in). This copy ships
-those four packages under `plugin/dsh-guard-degen/node_modules/`; copy them along when
-moving the plugin, or let npm install them when publishing.
+`@deepseek-ai/cordis` and `@deepseek-ai/cosmokit` that they pull in); an npm install
+pulls those in for you.
 
 The profile bundle mechanism works too: list `"dsh": { "profile": { "bundles":
 ["dsh-guard-degen"] } }` in the profile manifest and add the package to `dependencies` —
@@ -271,12 +289,14 @@ node --test test/*.test.mjs
 The suite does not require the host runtime (apart from a few integration checks that use
 the real cordis package).
 
-Standalone checks live in `../../verify/` (run them with the same node binary):
+Standalone checks live in `verify/` (run them with the same node binary):
 
 | Script | What it proves |
 | --- | --- |
 | `check-patch-config.mjs` | the bundled `cordis.patch.yml` matches the schema defaults |
-| `check-client-contribution.mjs` | the browser contribution loads and its remote calls line up with the host |
 | `check-host-load.mjs` | the host class instantiates in the real cordis and exposes all 13 remote methods |
+| `check-host-entry.mjs` | the host half loads on real cordis and wires its listeners |
+| `check-remote.mjs` | the remote-method markers are recognised by the real protocol package |
 | `check-package-files.mjs` | the package manifest points at files that exist (`npm pack --dry-run` equivalent) |
 | `check-mutations.mjs` | every fix is pinned: reverting it turns a test red |
+| `check-remove-mode.mjs` | "remove" masking leaves no trace on disk |
