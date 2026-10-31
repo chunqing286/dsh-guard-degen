@@ -28,9 +28,12 @@ test('默认配置齐备且每次都是新对象', () => {
 	assert.equal(first.toolGuard.mode, 'warn')
 	assert.equal(first.toolGuard.scope, 'all')
 	assert.equal(first.stream.reasoning, 'truncate')
-	assert.equal(first.stream.text, 'sanitize')
+	assert.equal(first.stream.text, 'truncate', '正文流默认截断')
 	assert.equal(first.stream.holdbackChars, 256)
+	assert.equal(first.artifacts.mode, 'remove', '工件修复方式默认整段删掉')
 	assert.equal(first.artifacts.apply, false, '工件修复默认必须只读')
+	assert.equal(first.sessions.mode, 'replace', '会话遮蔽落点默认就地改写')
+	assert.equal(first.sessions.maskMode, 'remove', '会话遮蔽内容方式默认整段删掉')
 	assert.equal(first.artifacts.maxFileBytes, 8 * 1024 * 1024, '大小上限默认要能覆盖 2.5MB 级别的大文件')
 	assert.equal(first.postExecute.enabled, false)
 	assert.equal(first.retry.maxSameModelRetries, 1)
@@ -48,6 +51,21 @@ test('四处治理都有「是否启用多字符单元治理」的开关，默�
 	assert.equal(config.artifacts.unitRepeats, 4, '工件治理的份数阈值默认 4')
 	assert.equal(config.stream.unitRepeats, 4, '流式守卫的份数阈值默认 4')
 	assert.equal(config.toolGuard.unitRepeats, 4, '工具守卫的份数阈值默认 4')
+})
+
+test('流式守卫的处置方式多了一个 remove（整段删掉）', () => {
+	const spec = CONFIG_SPEC.stream.fields
+	assert.ok(spec.reasoning.values.includes('remove'), '思考流要认 remove')
+	assert.ok(spec.text.values.includes('remove'), '正文流要认 remove')
+	for (const key of ['reasoning', 'text']) {
+		assert.deepEqual(spec[key].values, ['off', 'truncate', 'sanitize', 'remove'])
+		assert.equal(spec[key].default, 'truncate', `${key} 默认截断`)
+	}
+	const config = normalizeConfig({ stream: { reasoning: 'remove', text: 'remove' } })
+	assert.equal(config.stream.reasoning, 'remove')
+	assert.equal(config.stream.text, 'remove')
+	assert.equal(validateConfig({ stream: { text: 'remove' } }).valid, true, 'remove 是合法值')
+	assert.equal(validateConfig({ stream: { text: 'purge' } }).valid, false, '非法值要报错')
 })
 
 test('多字符单元治理的开关可以被关掉', () => {

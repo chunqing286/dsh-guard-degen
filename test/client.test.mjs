@@ -1187,6 +1187,33 @@ test('配置字段渲染时带上释义与效果说明', () => {
 	assert.ok(all.some((item) => String(item).includes('折叠')), `要显示效果：${all.join('|')}`)
 })
 
+test('remove 方式的判定对照：绿行什么也不留，只写说明', () => {
+	const t = (key) => bundle.__test.zh[key] ?? key
+	const segments = bundle.__test.verdictDiffSegments({
+		action: 'remove',
+		channel: 'text',
+		rule: 'symbol-run',
+		marker: '',
+		original: '⇒'.repeat(30),
+	}, t)
+
+	assert.equal(segments.length, 1)
+	assert.equal(segments[0].added, '', '删除方式不留任何替代文本')
+	assert.equal(segments[0].addedNote, bundle.__test.zh.logsNoteRemove)
+	assert.ok(segments[0].removed.includes('⇒'), '红行仍然是被删掉的原文')
+})
+
+test('remove 方式的中英文案都齐', () => {
+	for (const locale of [bundle.__test.zh, bundle.__test.en]) {
+		assert.ok(locale.logsActionRemove, '要有判定动作的文案')
+		assert.ok(locale.logsNoteRemove, '要有对照说明的文案')
+		assert.ok(locale.interventionActionRemove, '要有干预流水的文案')
+	}
+	const effect = bundle.__test.describeEffect('stream.text', 'remove')
+	assert.ok(effect && effect.length > 0, '要有 remove 的效果说明')
+	assert.ok(bundle.__test.describeEffect('stream.reasoning', 'remove').length > 0, '思考流也要有 remove 的效果说明')
+})
+
 test('会话视图的干预流水：列出命中条目、给出位置，并提供回退按钮', () => {
 	fakeReact.reset([{
 		entries: [{

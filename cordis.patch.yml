@@ -5,7 +5,7 @@
         enabled: true
         stream:
           reasoning: truncate
-          text: sanitize
+          text: truncate
           holdbackChars: 256
           windowChars: 4096
           maxInterventionsPerCall: 1
@@ -26,13 +26,14 @@
           maxSameModelRetries: 1
           recurrenceLimit: 2
         artifacts:
-          mode: collapse
+          mode: remove
           apply: false
           maxFileBytes: 8388608
           unitRun: true
           unitRepeats: 4
         sessions:
-          mode: copy
+          mode: replace
+          maskMode: remove
           unitRun: true
           unitRepeats: 4
         logging:

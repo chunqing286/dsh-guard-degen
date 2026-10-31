@@ -548,6 +548,7 @@ test('repair：apply=true 时先备份再改写，改写后不再命中且其余
 	const result = repair({
 		files: [fp('proj', 'a.md')],
 		apply: true,
+		mode: 'collapse',
 		readFile: fsx.readFile,
 		writeFile: fsx.writeFile,
 	})
@@ -583,6 +584,7 @@ test('repair：多段游程一次改写全部，其余内容逐字节保持', ()
 	const result = repair({
 		files: [fp('proj', 'multi.md')],
 		apply: true,
+		mode: 'collapse',
 		readFile: fsx.readFile,
 		writeFile: fsx.writeFile,
 	})
@@ -609,6 +611,23 @@ test('repair：collapse 模式与 detect.js 的 collapseSymbolRuns 同口径', (
 	const expected = collapseSymbolRuns(text, { minRun: 20, chars: DEFAULT_SYMBOLS }).text
 	assert.equal(fsx.files.get(fp('proj', 'a.md')), expected)
 	assert.equal(result.results[0].remaining, 0)
+})
+
+test('repair：不指定 mode 时默认整段删掉（remove）', () => {
+	const text = oneRunText()
+	const fsx = fakeFs({ [fp('proj', 'a.md')]: text })
+	const result = repair({
+		files: [fp('proj', 'a.md')],
+		apply: true,
+		readFile: fsx.readFile,
+		writeFile: fsx.writeFile,
+	})
+
+	assert.equal(result.mode, 'remove', '工件修复方式默认是整段删掉')
+	const after = fsx.files.get(fp('proj', 'a.md'))
+	assert.ok(!after.includes('〔退化符号流'), '默认方式不留折叠标记')
+	assert.ok(!after.includes('⇒'), '默认方式把退化符号真的删掉')
+	assert.equal(result.results[0].remaining, 0, '回读复核应当没有残留')
 })
 
 test('repair：remove 模式整段删掉，与 collapse 产出不同', () => {

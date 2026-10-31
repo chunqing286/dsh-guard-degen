@@ -336,7 +336,7 @@ test('maskSession：apply=false 是只读预览，一个字节都不写', () => 
 	const result = mask({ file: FILE, apply: false, readFile: fs.readFile, writeFile: fs.writeFile })
 
 	assert.equal(result.applied, false)
-	assert.equal(result.mode, 'copy')
+	assert.equal(result.mode, 'replace', '会话遮蔽落点默认是就地改写')
 	assert.equal(result.file, FILE)
 	assert.equal(result.masked, 2)
 	assert.equal(result.symbols, 60)
@@ -440,7 +440,7 @@ test('maskSession：跨帧的 JSON 行也能遮蔽，帧边界仍然保持', () 
 
 test('maskSession：只替换退化段，正常文字逐字不变', () => {
 	const fs = makeStore({ [FILE]: framePack(buildSessionText()) })
-	mask({ file: FILE, apply: true, mode: 'copy', outFile: `${FILE}.masked`, readFile: fs.readFile, writeFile: fs.writeFile })
+	mask({ file: FILE, apply: true, mode: 'copy', maskMode: 'collapse', outFile: `${FILE}.masked`, readFile: fs.readFile, writeFile: fs.writeFile })
 
 	const outText = decodeSession(fs.store.get(`${FILE}.masked`)).text
 	const reasoning = eventAt(outText, 2).data.message.content[0]
@@ -802,6 +802,7 @@ test('maskSession：marker 可自定义', () => {
 		file: FILE,
 		apply: true,
 		mode: 'copy',
+		maskMode: 'collapse',
 		outFile: `${FILE}.masked`,
 		marker: '[遮蔽{N}]',
 		readFile: fs.readFile,
@@ -857,6 +858,7 @@ test('maskSession：给出「原文 / 改写后」的对照预览（预览与落
 		file: FILE,
 		apply: false,
 		mode: 'copy',
+		maskMode: 'collapse',
 		readFile: fs.readFile,
 		writeFile: fs.writeFile,
 	})
@@ -875,6 +877,7 @@ test('maskSession：给出「原文 / 改写后」的对照预览（预览与落
 		file: FILE,
 		apply: true,
 		mode: 'copy',
+		maskMode: 'collapse',
 		outFile: `${FILE}.masked`,
 		readFile: fs.readFile,
 		writeFile: fs.writeFile,
@@ -897,12 +900,13 @@ test('maskSession：退化原文过长时截断，但仍然标明截断', () => 
 	assert.equal(segment.count, 400)
 })
 
-test('maskSession：collapse 方式换成带计数的标记（默认）', () => {
+test('maskSession：collapse 方式换成带计数的标记', () => {
 	const fs = makeStore({ [FILE]: buildSessionText() })
 	const result = mask({
 		file: FILE,
 		apply: true,
 		mode: 'copy',
+		maskMode: 'collapse',
 		outFile: `${FILE}.masked`,
 		readFile: fs.readFile,
 		writeFile: fs.writeFile,
@@ -1143,6 +1147,7 @@ test('会话治理：多字符单元重复按退化遮蔽（折叠成〔退化�
 		file: FILE,
 		apply: true,
 		mode: 'copy',
+		maskMode: 'collapse',
 		outFile: `${FILE}.masked`,
 		readFile: fs.readFile,
 		writeFile: fs.writeFile,

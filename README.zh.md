@@ -29,10 +29,23 @@
 
 本插件做四件事：
 
-1. **流式拦截**——在模型输出到达界面前检测符号游程，按策略截断/消毒，避免污染进入会话与磁盘。
+1. **流式拦截**——在模型输出到达界面前检测符号游程，按策略截断/消毒/删除，避免污染进入会话与磁盘。
 2. **写后校验**——写文件类工具执行后回读文件，发现退化内容就阻断并把反馈回灌给模型。
 3. **重试与换模**——退化导致请求失败时自动重试（同模型 N 次），必要时切换到指定模型。
 4. **工件与会话清理**——扫描仓库与历史会话，产出报告，由你选择哪些要修（默认只预览，不写盘）。
+
+流式守卫有**四种处置方式**，思考流与正文流各设各的：
+
+| 方式 | 退化段怎么处理 |
+| --- | --- |
+| `off` | 不检测也不改：退化段原样流过去。 |
+| `truncate`（默认） | 切断该通道，本轮以「退化」错误收尾。 |
+| `sanitize` | 把退化段折叠成一个标记（`〔退化符号流×N〕`），本轮继续。 |
+| `remove` | 退化段**整段删掉，一个标记都不留**，本轮继续。 |
+
+`remove` 是最安静的一种：模型输出读起来就像退化段从来没写过。
+被删掉的原文仍然记进判定流水作为证据，但与 `sanitize` 不同，**它不可回退**——
+流里已经没有东西可以写回去了。
 
 工件治理覆盖**两种退化形态**：单个符号的游程，以及**多字符单元整段重复**
 （例如 `⇒⇒§ ⇒⇒§ §` 反复出现）。勾选条目后点「预览修复」，界面直接给出
@@ -105,7 +118,8 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
   守卫做了什么处置。列表带**会话ID**与**会话名称**两列，可以按会话筛选
   （下拉选会话，或按会话 ID / 名称做文本筛选）；点一条记录能看**检出的退化特征**
   （哪个单元重复了几次），以及**红/绿对照**（红＝治理前的退化原文，
-  绿＝治理后留下的东西：净化时是折叠标记，截断时是「后面没有了」的说明；
+  绿＝治理后留下的东西：净化时是折叠标记，删除时是「什么也没留下」的说明，
+   截断时是「后面没有了」的说明；
   没有自动治理时绿行写明「只记录判定，未改写」）。误报反馈入口也在这里。
 - **工件**：工件扫描报告、被污染会话列表，逐项勾选后再修复。
 
@@ -115,8 +129,8 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
 
 会话遮蔽有**两种内容方式**，工件页与会话视图里都能切换：
 
-- `折叠成标记`：把整段退化折叠成 `〔退化内容已遮蔽×N〕`（默认）。
-- `整段删除`：整段删掉，不留痕迹——**磁盘上的内容里一个字标记都不写**，
+- `折叠成标记`：把整段退化折叠成 `〔退化内容已遮蔽×N〕`。
+- `整段删除`：整段删掉，不留痕迹（默认）——**磁盘上的内容里一个字标记都不写**，
   对照视图的绿行显示的就是删完剩下的文字（符号是真的没了，
   不是「被换成了某一句话」）。整条内容都被删光时，绿行会写明「整条内容被删空了」。
 
@@ -124,9 +138,9 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
 
 遮蔽还分**两种落地方式**（工件页与会话视图里都能切换）：
 
-- `另存为副本`：把遮蔽后的内容写成新文件，原档不动（工件页默认）。
-- `直接改写会话存档`：**会话视图里默认就是这一种**——遮蔽的就是眼前这个会话本身，
-  不用再去别处找一份副本。
+- `另存为副本`：把遮蔽后的内容写成新文件，原档不动。
+- `直接改写会话存档`：**两个页面默认都是这一种**——遮蔽的就是眼前这个会话本身
+  （原档先备份），不用再去别处找一份副本。
 
 ### 会话视图里的「退化守卫」
 
@@ -155,7 +169,7 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
 | `/degen-status` | 看当前守卫状态、规则表、最近判定 |
 | `/degen-scan [路径…]` | 只读扫描工件（默认扫当前工作区），产出报告 |
 | `/degen-fix <文件路径…>` | 修复指定文件里的退化内容（先备份再改写） |
-| `/degen-clean` | 遮蔽当前会话里的退化内容（默认另存新档，原档保留） |
+| `/degen-clean` | 遮蔽当前会话里的退化内容（默认就地改写存档，原档先备份） |
 | `/degen-ack` | 把最近一次判定登记为误报，并调高对应规则阈值一档 |
 
 ## 配置要点
@@ -164,8 +178,8 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
 | --- | --- | --- |
 | `enabled` | `true` | 总开关 |
 | `modelIncludes` | `[]` | 只守卫这些模型（留空＝全部模型） |
-| `stream.reasoning` | `truncate` | 思考流策略：`off`/`truncate`/`sanitize` |
-| `stream.text` | `sanitize` | 正文流策略 |
+| `stream.reasoning` | `truncate` | 思考流策略：`off`/`truncate`/`sanitize`/`remove` |
+| `stream.text` | `truncate` | 正文流策略：`off`/`truncate`/`sanitize`/`remove` |
 | `stream.holdbackChars` | `256` | 保留窗口：判定前不立即放行的字符数 |
 | `stream.maxInterventionsPerCall` | `1` | 单次调用最多干预次数（防止反复改写） |
 | `stream.unitRun` | `true` | 流式守卫是否治理「多字符单元整段重复」 |
@@ -179,12 +193,12 @@ dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
 | `retry.policy` | `same-model` | `same-model`/`steer`/`no-retry` |
 | `retry.maxSameModelRetries` | `1` | 同模型重试次数 |
 | `retry.switchModel.enabled` | `false` | 是否允许自动换模型（需显式给 provider+model） |
-| `artifacts.mode` | `collapse` | 修复方式：`collapse`（折叠成标记）/`remove`（删除） |
+| `artifacts.mode` | `remove` | 修复方式：`collapse`（折叠成标记）/`remove`（删除） |
 | `artifacts.apply` | `false` | 默认只预览，不写盘 |
 | `artifacts.unitRun` | `true` | 是否治理「多字符单元整段重复」这类退化 |
 | `artifacts.unitRepeats` | `4` | 单元重复多少份才算退化 |
-| `sessions.mode` | `copy` | 会话遮蔽方式：`copy`（另存新档）/`replace`（覆盖原档） |
-| `sessions.maskMode` | `collapse` | 会话遮蔽内容方式：`collapse`（折叠成标记）/`remove`（整段删除） |
+| `sessions.mode` | `replace` | 会话遮蔽方式：`copy`（另存新档）/`replace`（覆盖原档） |
+| `sessions.maskMode` | `remove` | 会话遮蔽内容方式：`collapse`（折叠成标记）/`remove`（整段删除） |
 | `sessions.unitRun` | `true` | 会话遮蔽是否治理「多字符单元整段重复」 |
 | `sessions.unitRepeats` | `4` | 单元重复多少份才算退化 |
 | `logging.enabled` | `true` | 判定流水落盘 |

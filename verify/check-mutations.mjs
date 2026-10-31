@@ -289,7 +289,7 @@ const MUTATIONS = [
 	{
 		id: 'F7 匹配不上的 block-end 原样放行',
 		file: 'lib/stream-guard.js',
-		from: `						rewritten = { ...chunk, block: { ...chunk.block, text: this.sanitizeText(chunk.block?.text ?? '') } }`,
+		from: `						rewritten = { ...chunk, block: { ...chunk.block, text: this.sanitizeText(chunk.block?.text ?? '', state.policy) } }`,
 		to: `						// 变异：匹配不上就原样放行`,
 		why: '复审缺陷 F7：原始符号经 block-end 进权威文本',
 	},
@@ -343,6 +343,42 @@ const MUTATIONS = [
 		from: `\t\t\t\t// collapse 方式下退化段变成标记，标记也在窗口里。\n\t\t\t\tmaskedWindow: masked.value.slice(Math.max(0, span.start - PREVIEW_CONTEXT_CHARS), span.end + PREVIEW_CONTEXT_CHARS),`,
 		to: `\t\t\t\t// collapse 方式下退化段变成标记，标记也在窗口里。\n\t\t\t\tmaskedWindow: node.value.slice(Math.max(0, run.start - PREVIEW_CONTEXT_CHARS), run.end + PREVIEW_CONTEXT_CHARS),`,
 		why: 'remove 方式的绿行里会重新出现退化符号：用户看到的还是「没删掉」',
+	},
+	// ── 第 8 轮（流式守卫的删除方式 M1–M3）────────────────────────────────
+	{
+		id: 'M1 删除方式又插回折叠标记',
+		file: 'lib/stream-guard.js',
+		from: `\t\tconst insertText = remove ? '' : markerText`,
+		to: `\t\tconst insertText = markerText`,
+		why: '删除方式下退化段被换成了折叠标记：用户看到的还是「净化」不是「删除」',
+	},
+	{
+		id: 'M2 兜底改写不认删除方式',
+		file: 'lib/stream-guard.js',
+		from: `\t\t\t\t\t\trewritten = { ...chunk, block: { ...chunk.block, text: this.sanitizeText(chunk.block?.text ?? '', state.policy) } }`,
+		to: `\t\t\t\t\t\trewritten = { ...chunk, block: { ...chunk.block, text: this.sanitizeText(chunk.block?.text ?? '') } }`,
+		why: '匹配不上的 block-end 会把退化段折叠成标记：删除方式名存实亡',
+	},
+	{
+		id: 'M3 删除方式不被当成改写方式',
+		file: 'lib/stream-guard.js',
+		from: `\t\tconst canRewrite = (state.policy === 'sanitize' || state.policy === 'remove')\n\t\t\t&& (verdict.rule === 'symbol-run' || verdict.rule === 'unit-run')`,
+		to: `\t\tconst canRewrite = state.policy === 'sanitize'\n\t\t\t&& (verdict.rule === 'symbol-run' || verdict.rule === 'unit-run')`,
+		why: '删除方式被当成截断：整条流被切断，本轮直接失败',
+	},
+	{
+		id: 'M4 会话遮蔽落点又只认 replace',
+		file: 'lib/service.js',
+		from: `\t\t\tconst mode = request.mode === 'copy'\n\t\t\t\t? 'copy'\n\t\t\t\t: (request.mode === 'replace' ? 'replace' : state.config.sessions?.mode ?? 'replace')`,
+		to: `\t\t\tconst mode = request.mode === 'replace' ? 'replace' : state.config.sessions?.mode ?? 'replace'`,
+		why: '界面上选「另存为副本」会被悄悄改成就地改写：用户要的落点不是这个',
+	},
+	{
+		id: 'M5 工件修复方式又只认 remove',
+		file: 'lib/service.js',
+		from: `\t\t\tconst mode = request.mode === 'collapse'\n\t\t\t\t? 'collapse'\n\t\t\t\t: (request.mode === 'remove' ? 'remove' : state.config.artifacts?.mode ?? 'remove')`,
+		to: `\t\t\tconst mode = request.mode === 'remove' ? 'remove' : state.config.artifacts?.mode ?? 'remove'`,
+		why: '界面上选「折叠成标记」会被悄悄改成整段删掉：原文件内容不可恢复',
 	},
 ]
 

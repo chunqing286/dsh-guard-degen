@@ -61,7 +61,10 @@ test('默认配置齐全，并带上规格与覆盖文件路径', () => {
 	assert.equal(view.config.enabled, true)
 	assert.equal(view.config.toolGuard.mode, 'warn')
 	assert.equal(view.config.stream.reasoning, 'truncate')
-	assert.equal(view.config.stream.text, 'sanitize')
+	assert.equal(view.config.stream.text, 'truncate')
+	assert.equal(view.config.artifacts.mode, 'remove')
+	assert.equal(view.config.sessions.mode, 'replace')
+	assert.equal(view.config.sessions.maskMode, 'remove')
 	assert.ok(view.spec && typeof view.spec === 'object')
 	assert.ok(view.overrideFile.endsWith('config.json'))
 })
@@ -283,6 +286,39 @@ test('会话与工件的多字符单元治理开关只认配置（浏览器端�
 	await service.cleanSessions({ sessionId, unitRun: true, unitRepeats: 2 })
 	assert.equal(calls.mask[1].unitRun, false, '请求里的开关必须被忽略')
 	assert.equal(calls.mask[1].unitRepeats, 9, '请求里的份数阈值必须被忽略')
+})
+
+test('会话遮蔽的落地方式：请求里选了哪一个就用哪一个', async () => {
+	// 配置默认是 replace（就地改写），但界面上「另存为副本」必须真的能选 ——
+	// 落地方式两个值都要认，不能只认 replace。
+	const dir = tempDir()
+	const sessionsRoot = path.join(dir, 'sessions')
+	const sessionId = 'landing-mode-session'
+	const sessionDir = path.join(sessionsRoot, 'project', sessionId)
+	fs.mkdirSync(sessionDir, { recursive: true })
+	fs.writeFileSync(path.join(sessionDir, 'session.v4.jsonl.zstd'), 'x')
+	const { service, calls } = makeService({ sessionsRoot })
+	await service.cleanSessions({ sessionId, mode: 'copy' })
+	assert.equal(calls.mask[0].mode, 'copy', '请求选了 copy 必须照办')
+	await service.cleanSessions({ sessionId, mode: 'replace' })
+	assert.equal(calls.mask[1].mode, 'replace', '请求选了 replace 必须照办')
+	await service.cleanSessions({ sessionId })
+	assert.equal(calls.mask[2].mode, 'replace', '没选时回落到配置（默认 replace）')
+	await service.cleanSessions({ sessionId, mode: '瞎写' })
+	assert.equal(calls.mask[3].mode, 'replace', '非法值回落到配置')
+})
+
+test('工件修复方式：请求里选了哪一个就用哪一个', async () => {
+	// 配置默认是 remove（整段删掉），但界面上「折叠成标记」必须真的能选。
+	const { service, calls } = makeService()
+	await service.repairArtifacts({ files: ['a.md'], mode: 'collapse' })
+	assert.equal(calls.repair[0].mode, 'collapse', '请求选了 collapse 必须照办')
+	await service.repairArtifacts({ files: ['a.md'], mode: 'remove' })
+	assert.equal(calls.repair[1].mode, 'remove', '请求选了 remove 必须照办')
+	await service.repairArtifacts({ files: ['a.md'] })
+	assert.equal(calls.repair[2].mode, 'remove', '没选时回落到配置（默认 remove）')
+	await service.repairArtifacts({ files: ['a.md'], mode: '瞎写' })
+	assert.equal(calls.repair[3].mode, 'remove', '非法值回落到配置')
 })
 
 test('cleanSessions 找不到存档时给出错误', async () => {

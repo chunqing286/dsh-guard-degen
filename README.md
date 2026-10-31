@@ -34,13 +34,28 @@ into the next session and accumulates.
 This plugin does four things:
 
 1. **Stream containment** — detect symbol runs before the output reaches the UI, and
-   truncate/sanitize according to policy.
+   truncate/sanitize/remove according to policy.
 2. **Write verification** — after a write-type tool runs, read the file back; if it is
    polluted, block the result and feed the finding back to the model.
 3. **Retry and model switch** — retry a failed request (same model, N times) and
    optionally switch to an explicitly configured model.
 4. **Artifact and session cleanup** — scan the workspace and session history, produce a
    report, and let you pick what to repair (preview only by default; nothing is written).
+
+The stream guard has **four policies**, set separately for the reasoning channel and
+the text channel:
+
+| Policy | What happens to the degenerate run |
+| --- | --- |
+| `off` | Nothing is detected or changed — the run goes through untouched. |
+| `truncate` (default) | The channel is cut and the round ends with a "degeneration" error. |
+| `sanitize` | The run is folded into a marker (`〔退化符号流×N〕`) and the round continues. |
+| `remove` | The run is **deleted outright** — not one marker is left behind — and the round continues. |
+
+`remove` is the quietest option: the model output reads as if the degenerate segment
+had never been written. The removed text is still recorded in the verdict journal as
+evidence, but unlike `sanitize` it cannot be reverted — there is nothing in the stream
+to put back.
 
 Artifact governance covers **both shapes**: a run of one symbol, and a multi-character
 unit repeated as a whole block. After ticking the entries you want, "preview repair"
@@ -124,7 +139,8 @@ each on **its own page** (they never render on top of each other):
   shows the **detected degeneration features** (which unit repeated how many times)
   and the **red/green diff** of the remediation (red = the degenerate text before,
   green = what is left after: the collapse marker when the output was sanitized, an
-  explicit "nothing follows" note when it was truncated, and "recorded only, not
+  explicit "nothing was left behind" note when it was removed, an
+   explicit "nothing follows" note when it was truncated, and "recorded only, not
   remediated" when the guard did not rewrite anything). False-positive feedback
   lives here too.
 - **Artifacts** — the artifact scan report and the list of polluted sessions;
@@ -140,8 +156,8 @@ to open the generated file on disk.
 Session masking has **two content modes**, selectable on both the artifacts page
 and the session view:
 
-- `Collapse` — fold the degenerate run into `〔退化内容已遮蔽×N〕` (default).
-- `Remove` — delete the run entirely. **Nothing is written in its place**: the
+- `Collapse` — fold the degenerate run into `〔退化内容已遮蔽×N〕`.
+- `Remove` — delete the run entirely (default). **Nothing is written in its place**: the
   file ends up with the symbols gone, and the green diff line shows the text that
   remains after the deletion (not a sentence standing in for the run). When the
   whole content was degenerate, the green line says so explicitly.
@@ -152,9 +168,10 @@ inspected before anything is written.
 Masking also has **two landing modes**, selectable on both pages:
 
 - `Write a separate copy` — the masked content lands in a new file, the archive
-  stays untouched (the default on the artifacts page).
-- `Rewrite the session archive in place` — **the default inside the session
-  view**: the session you are looking at is masked itself, no copy to hunt for.
+  stays untouched.
+- `Rewrite the session archive in place` — **the default on both pages**: the
+  session you are looking at is masked itself (the original is backed up first),
+  no copy to hunt for.
 
 ### The guard view inside a session
 
@@ -189,7 +206,7 @@ Three things are worth knowing:
 | `/degen-status` | Guard status, rule table, recent verdicts |
 | `/degen-scan [paths…]` | Read-only artifact scan (defaults to the workspace) |
 | `/degen-fix <file…>` | Repair the given files (backs up before rewriting) |
-| `/degen-clean` | Mask degeneration in the current session (writes a copy by default) |
+| `/degen-clean` | Mask degeneration in the current session (rewrites the archive in place by default) |
 | `/degen-ack` | Record the latest verdict as a false positive and relax that rule one step |
 
 ## Configuration
@@ -198,8 +215,8 @@ Three things are worth knowing:
 | --- | --- | --- |
 | `enabled` | `true` | Master switch |
 | `modelIncludes` | `[]` | Guard only these models (empty = all) |
-| `stream.reasoning` | `truncate` | Reasoning policy: `off`/`truncate`/`sanitize` |
-| `stream.text` | `sanitize` | Text policy |
+| `stream.reasoning` | `truncate` | Reasoning policy: `off`/`truncate`/`sanitize`/`remove` |
+| `stream.text` | `truncate` | Text policy: `off`/`truncate`/`sanitize`/`remove` |
 | `stream.holdbackChars` | `256` | Characters held back before a verdict |
 | `stream.maxInterventionsPerCall` | `1` | Max interventions per call |
 | `stream.unitRun` | `true` | Also govern multi-character units repeated as a whole block |
@@ -213,13 +230,13 @@ Three things are worth knowing:
 | `retry.policy` | `same-model` | `same-model`/`steer`/`no-retry` |
 | `retry.maxSameModelRetries` | `1` | Same-model retry count |
 | `retry.switchModel.enabled` | `false` | Allow an automatic model switch |
-| `artifacts.mode` | `collapse` | `collapse` (marker) or `remove` |
+| `artifacts.mode` | `remove` | `collapse` (marker) or `remove` (delete the run) |
 | `artifacts.apply` | `false` | Preview only by default |
 | `artifacts.unitRun` | `true` | Also govern multi-character units repeated as a whole block |
 | `artifacts.unitRepeats` | `4` | How many repeats of a unit count as degeneration |
 | `artifacts.maxFileBytes` | `8388608` | Per-file size limit; larger files are skipped (and listed) |
-| `sessions.mode` | `copy` | `copy` (new file) or `replace` |
-| `sessions.maskMode` | `collapse` | `collapse` (marker) or `remove` (delete the run) |
+| `sessions.mode` | `replace` | `copy` (new file) or `replace` (rewrite in place) |
+| `sessions.maskMode` | `remove` | `collapse` (marker) or `remove` (delete the run) |
 | `sessions.unitRun` | `true` | Also govern multi-character units in session content |
 | `sessions.unitRepeats` | `4` | How many repeats of a unit count as degeneration |
 | `logging.enabled` | `true` | Persist the verdict journal |

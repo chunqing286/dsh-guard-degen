@@ -389,6 +389,7 @@ test('maskSession：产物过不了校验就不落盘，原文件一个字节都
 		file: FILE,
 		apply: true,
 		mode: 'copy',
+		maskMode: 'collapse',
 		outFile: `${FILE}.masked`,
 		roots: ['/sessions'],
 		auditFile: `${FILE}.audit.json`,
