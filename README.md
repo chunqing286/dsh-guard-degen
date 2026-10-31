@@ -1,5 +1,8 @@
 # dsh-guard-degen
 
+[![CI](https://github.com/chunqing286/dsh-guard-degen/actions/workflows/ci.yml/badge.svg)](https://github.com/chunqing286/dsh-guard-degen/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/dsh-guard-degen.svg)](https://www.npmjs.com/package/dsh-guard-degen)
+
 A degeneration guard for DeepSeek Harness: it contains runaway symbol streams at the
 model boundary and ships tooling to repair polluted artifacts and sessions.
 

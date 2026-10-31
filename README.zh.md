@@ -1,5 +1,8 @@
 # dsh-guard-degen
 
+[![CI](https://github.com/chunqing286/dsh-guard-degen/actions/workflows/ci.yml/badge.svg)](https://github.com/chunqing286/dsh-guard-degen/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/dsh-guard-degen.svg)](https://www.npmjs.com/package/dsh-guard-degen)
+
 退化守卫：给 DeepSeek Harness 装一道「模型符号流退化」的护栏，并附赠工件/会话的清理工具。
 
 ## 为什么需要它
