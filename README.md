@@ -73,6 +73,12 @@ dsh plugin --profile <your profile> add dsh-guard-degen
 Replace `<your profile>` with the profile the host actually uses (`web` for `dsh web`;
 the desktop app uses its own profile, whose name is not necessarily the same).
 
+Or install straight from the repository:
+
+```sh
+dsh plugin --profile <your profile> add github:chunqing286/dsh-guard-degen
+```
+
 Or do it in the UI: **Plugins → Discover**, add the index source
 `https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`, search for
 "degeneration guard", and press **Install**.

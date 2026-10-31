@@ -61,6 +61,12 @@ dsh plugin --profile <你的 profile> add dsh-guard-degen
 `<你的 profile>` 换成宿主实际使用的 profile 名（`dsh web` 通常是 `web`，
 桌面端应用用的是它自己的 profile，名字未必相同）。
 
+也可以直接从仓库装：
+
+```sh
+dsh plugin --profile <你的 profile> add github:chunqing286/dsh-guard-degen
+```
+
 也可以在 DSH 界面里点一下：**插件 → 发现**，添加索引源
 `https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`，
 搜「退化守卫 / guard degen」，点**安装**。
