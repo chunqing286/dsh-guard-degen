@@ -1,0 +1,44 @@
+- insert:
+    - id: guard-degen
+      name: dsh-guard-degen
+      config:
+        enabled: true
+        stream:
+          reasoning: truncate
+          text: sanitize
+          holdbackChars: 256
+          windowChars: 4096
+          maxInterventionsPerCall: 1
+          unitRun: true
+          unitRepeats: 4
+        toolGuard:
+          mode: warn
+          scope: all
+          minRun: 20
+          maxArgsChars: 2048
+          unitRun: true
+          unitRepeats: 4
+        postExecute:
+          enabled: false
+          maxFileBytes: 524288
+        retry:
+          policy: same-model
+          maxSameModelRetries: 1
+          recurrenceLimit: 2
+        artifacts:
+          mode: collapse
+          apply: false
+          maxFileBytes: 8388608
+          unitRun: true
+          unitRepeats: 4
+        sessions:
+          mode: copy
+          unitRun: true
+          unitRepeats: 4
+        logging:
+          enabled: true
+        ack:
+          enabled: true
+          autoRelax: true
+        commands:
+          enabled: true

@@ -1,0 +1,58 @@
+{
+  "name": "dsh-guard-degen",
+  "description": "Degeneration guard for DeepSeek Harness: detect and contain runaway symbol streams, verify writes, repair polluted artifacts and sessions",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "lib/**/*.js",
+    "assets/*.png",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md"
+  ],
+  "icon": "assets/icon-512.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/__OWNER__/dsh-guard-degen.git"
+  },
+  "homepage": "https://github.com/__OWNER__/dsh-guard-degen#readme",
+  "bugs": {
+    "url": "https://github.com/__OWNER__/dsh-guard-degen/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "guard",
+    "degeneration",
+    "agent",
+    "hallucination",
+    "loop"
+  ],
+  "author": "__OWNER__",
+  "engines": {
+    "dsh": ">=0.1.6-alpha.2 <0.3.0-0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3",
+    "@deepseek-ai/schemastery": "3.18.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/dsh": ">=0.1.6-alpha.2 <0.3.0-0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.3",
+    "@deepseek-ai/schemastery": "3.18.5"
+  }
+}
